@@ -1,0 +1,1 @@
+# aws-ssm-patch-manager
