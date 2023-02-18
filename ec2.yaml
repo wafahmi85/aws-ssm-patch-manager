@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  WindowsImageId:
+    Type: String
+
+  AmazonLinuxImageId:
+    Type: String
+
+  RHELImageId:
+    Type: String
+    
+  InstanceSecurityGroup:
+    Type: String
+
+  InstanceType:
+    Type: String
+    
+  Prefix:
+    Type: String
+
+  Subnet:
+    Type: String
+    
+  S3BucketArn:
+    Type: String
+
+
+Resources:
+  WindowsInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref WindowsImageId
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: 0
+          SubnetId: !Ref Subnet
+          GroupSet:
+            - !Ref InstanceSecurityGroup
+          
+  AmazonLinuxInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref AmazonLinuxImageId
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: 0
+          SubnetId: !Ref Subnet
+          GroupSet:
+            - !Ref InstanceSecurityGroup
+      # Tags:
+      #   - Key: Patch Group
+      #     Value: !Sub "${Prefix}-patch-group"
+
+  RHELInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref RHELImageId
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: 0
+          SubnetId: !Ref Subnet
+          GroupSet:
+            - !Ref InstanceSecurityGroup
+      # Tags:
+      #   - Key: Patch Group
+      #     Value: !Sub "${Prefix}-patch-group"
+            
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref InstanceRole
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+      Policies:
+        - PolicyName: PutPatchBaseLog
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - !Sub "${S3BucketArn}/*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - !Sub "arn:aws:s3:::aws-windows-downloads-${AWS::Region}/*"          # SSM Agent communications with AWS managed S3 buckets
+                  - !Sub "arn:aws:s3:::amazon-ssm-${AWS::Region}/*"                     # https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent-minimum-s3-permissions.html
+                  - !Sub "arn:aws:s3:::amazon-ssm-packages-${AWS::Region}/*"
+                  - !Sub "arn:aws:s3:::${AWS::Region}-birdwatcher-prod/*"
+                  - !Sub "arn:aws:s3:::aws-ssm-document-attachments-${AWS::Region}/*"
+                  - !Sub "arn:aws:s3:::patch-baseline-snapshot-${AWS::Region}/*"
+                  - !Sub "arn:aws:s3:::aws-ssm-${AWS::Region}/*"
+                  - !Sub "arn:aws:s3:::aws-patchmanager-macos-${AWS::Region}/*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        
+        
+Outputs:
+  WindowsInstance:
+    Value: !Ref WindowsInstance
+    
+  AmazonLinuxInstance:
+    Value: !Ref AmazonLinuxInstance
+
+  RHELInstance:
+    Value: !Ref RHELInstance

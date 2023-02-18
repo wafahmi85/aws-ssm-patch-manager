@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  TemplateBucketName:
+    Type: String
+    Default: fahmi-ap-southeast-1
+    
+  Prefix:
+    Type: String
+    Default: cf-patch-manager
+    
+
+Resources:
+  S3Stack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/${Prefix}/s3.yaml"
+      Parameters:
+        Prefix: !Ref Prefix
+        LogBucketName: !Sub "${Prefix}-log"
+
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/${Prefix}/vpc.yaml"
+      Parameters:
+        AvailabilityZone: a
+        SubnetCIDR: 10.4.0.0/22
+        Prefix: !Ref Prefix
+        VPCCIDR: 10.4.0.0/20
+
+  EC2Stack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - VPCStack
+    Properties:
+      TemplateURL: !Sub "https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/${Prefix}/ec2.yaml"
+      Parameters:
+        WindowsImageId: ami-0bc64185df5784cc3 # Microsoft Windows Server 2019 Base
+        AmazonLinuxImageId: ami-0f2eac25772cd4e36 #Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type
+        RHELImageId: ami-0319ac76374b9fe74 #Red Hat Enterprise Linux 9 (HVM), SSD Volume Type
+        InstanceSecurityGroup: !GetAtt VPCStack.Outputs.InstanceSecurityGroup
+        InstanceType: t2.micro
+        Prefix: !Ref Prefix
+        Subnet: !GetAtt VPCStack.Outputs.PublicSubnet
+        S3BucketArn: !GetAtt S3Stack.Outputs.S3BucketArn
