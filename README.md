@@ -14,14 +14,14 @@ Parameters:
 ## Upload  Template Files to S3 Bucket
 
 ```
-aws s3 cp . s3://my-bucket/cf-patch-manager/ --recursive
+aws s3 cp . s3://<bucket-name>/cf-patch-manager/ --recursive
 ```
-
+ß
 ## CloudFormation Stack Creation
 
 ```
 aws cloudformation create-stack \
 --stack-name ssm-patch-manager \
---template-url https://my-bucket.s3.ap-southeast-1.amazonaws.com/cf-patch-manager/stack.yaml \
+--template-url https://<bucket-name>.s3.ap-southeast-1.amazonaws.com/cf-patch-manager/stack.yaml \
 --capabilities CAPABILITY_IAM
 ```
