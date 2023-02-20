@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Parameters:
   TemplateBucketName:
     Type: String
-    Default: fahmi-ap-southeast-1
+    Default: fahmi-ap-southeast-1       # Define template bucket here
     
   Prefix:
     Type: String
@@ -36,11 +36,27 @@ Resources:
     Properties:
       TemplateURL: !Sub "https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/${Prefix}/ec2.yaml"
       Parameters:
-        WindowsImageId: ami-0bc64185df5784cc3 # Microsoft Windows Server 2019 Base
+        WindowsImageId1: ami-0b52c74fd50d519f2 # Microsoft Windows Server 2016 Base
+        WindowsImageId2: ami-0bc64185df5784cc3 # Microsoft Windows Server 2019 Base
         AmazonLinuxImageId: ami-0f2eac25772cd4e36 #Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type
-        RHELImageId: ami-0319ac76374b9fe74 #Red Hat Enterprise Linux 9 (HVM), SSD Volume Type
+        RHELImageId: ami-051f0947e420652a9 #Red Hat Enterprise Linux 8 (HVM), SSD Volume Type
         InstanceSecurityGroup: !GetAtt VPCStack.Outputs.InstanceSecurityGroup
         InstanceType: t2.micro
         Prefix: !Ref Prefix
         Subnet: !GetAtt VPCStack.Outputs.PublicSubnet
         S3BucketArn: !GetAtt S3Stack.Outputs.S3BucketArn
+
+  SSMStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - EC2Stack
+    Properties:
+      TemplateURL: !Sub "https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/${Prefix}/ssm.yaml"
+      Parameters:
+        WindowsInstance1: !GetAtt EC2Stack.Outputs.WindowsInstance1
+        WindowsInstance2: !GetAtt EC2Stack.Outputs.WindowsInstance2
+        AmazonLinuxInstance: !GetAtt EC2Stack.Outputs.AmazonLinuxInstance
+        RHELInstance: !GetAtt EC2Stack.Outputs.RHELInstance
+        Prefix: !Ref Prefix
+        S3BucketName: !GetAtt S3Stack.Outputs.S3BucketName
+        WaitForSuccessTimeoutSeconds: 3600

@@ -1,7 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
-  WindowsImageId:
+  WindowsImageId1:
+    Type: String
+
+  WindowsImageId2:
     Type: String
 
   AmazonLinuxImageId:
@@ -27,11 +30,11 @@ Parameters:
 
 
 Resources:
-  WindowsInstance:
+  WindowsInstance1:
     Type: AWS::EC2::Instance
     Properties:
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: !Ref WindowsImageId
+      ImageId: !Ref WindowsImageId1
       InstanceType: !Ref InstanceType
       NetworkInterfaces:
         - AssociatePublicIpAddress: "true"
@@ -39,6 +42,22 @@ Resources:
           SubnetId: !Ref Subnet
           GroupSet:
             - !Ref InstanceSecurityGroup
+
+  WindowsInstance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref WindowsImageId2
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: 0
+          SubnetId: !Ref Subnet
+          GroupSet:
+            - !Ref InstanceSecurityGroup
+      Tags:
+        - Key: Patch Group
+          Value: !Sub "${Prefix}-windows-patch-group"
           
   AmazonLinuxInstance:
     Type: AWS::EC2::Instance
@@ -52,9 +71,9 @@ Resources:
           SubnetId: !Ref Subnet
           GroupSet:
             - !Ref InstanceSecurityGroup
-      # Tags:
-      #   - Key: Patch Group
-      #     Value: !Sub "${Prefix}-patch-group"
+      Tags:
+        - Key: Patch Group
+          Value: !Sub "${Prefix}-amznlinux-patch-group"
 
   RHELInstance:
     Type: AWS::EC2::Instance
@@ -68,9 +87,18 @@ Resources:
           SubnetId: !Ref Subnet
           GroupSet:
             - !Ref InstanceSecurityGroup
-      # Tags:
-      #   - Key: Patch Group
-      #     Value: !Sub "${Prefix}-patch-group"
+      UserData:
+        Fn::Base64:       #UserData must be a base64-encoded text. Also, the limit on user data size is 16 KB.
+          !Sub |
+            #!/bin/bash
+            sudo dnf update -y
+            sudo dnf install python39
+            sudo yum install -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_amd64/amazon-ssm-agent.rpm
+            sudo systemctl enable amazon-ssm-agent
+            sudo systemctl start amazon-ssm-agent
+      Tags:
+        - Key: Patch Group
+          Value: !Sub "${Prefix}-rhel-patch-group"
             
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -117,8 +145,11 @@ Resources:
         
         
 Outputs:
-  WindowsInstance:
-    Value: !Ref WindowsInstance
+  WindowsInstance1:
+    Value: !Ref WindowsInstance1
+
+  WindowsInstance2:
+    Value: !Ref WindowsInstance2
     
   AmazonLinuxInstance:
     Value: !Ref AmazonLinuxInstance

@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  WindowsInstance1:
+    Type: String
+
+  WindowsInstance2:
+    Type: String
+    
+  AmazonLinuxInstance:
+    Type: String
+
+  RHELInstance:
+    Type: String
+
+  Prefix:
+    Type: String
+    
+  S3BucketName:
+    Type: String
+    
+  WaitForSuccessTimeoutSeconds:
+    Type: Number
+
+
+Resources:
+  WindowsPatchBaseline:
+    Type: AWS::SSM::PatchBaseline
+    Properties:
+      OperatingSystem: WINDOWS                # Operating system 
+      ApprovalRules:
+        PatchRules:
+          - ApproveAfterDays: 7               # The number of days to wait after the patch was released, before the patch is automatically approved for patching
+            ComplianceLevel: UNSPECIFIED      # Defines the compliance level for approved patches. The default value is UNSPECIFIED. Values can be CRITICAL | HIGH | INFORMATIONAL | LOW | MEDIUM
+            EnableNonSecurity: false          # Indicates whether the list of approved patches includes non-security updates
+            PatchFilterGroup:
+              PatchFilters:
+                - Key: CLASSIFICATION         # Only critical update. Values can be SecurityUpdates | CriticalUpdates
+                  Values:
+                    - CriticalUpdates
+                - Key: MSRC_SEVERITY          # Only critical update. Values can be Critical | Important Moderate
+                  Values:
+                    - Critical
+      Description: Windows Critical Patch Baseline.
+      Name: !Sub "${Prefix}-WindowsCustomPatchBaseline"
+      PatchGroups:
+        - !Sub "${Prefix}-windows-patch-group"    # Patch Group tag
+
+  AmazonLinuxPatchBaseline:
+    Type: AWS::SSM::PatchBaseline
+    Properties:
+      OperatingSystem: AMAZON_LINUX_2         # Operating system 
+      ApprovalRules:
+        PatchRules:
+          - ApproveAfterDays: 7               # The number of days to wait after the patch was released, before the patch is automatically approved for patching
+            ComplianceLevel: UNSPECIFIED      # Defines the compliance level for approved patches. The default value is UNSPECIFIED. Values can be CRITICAL | HIGH | INFORMATIONAL | LOW | MEDIUM
+            EnableNonSecurity: false          # Indicates whether the list of approved patches includes non-security updates
+            PatchFilterGroup:
+              PatchFilters:
+                - Key: CLASSIFICATION         # Only security update. Values can be Security | Bugfix
+                  Values:
+                    - Security
+                - Key: SEVERITY               # Only critical update. Values can be Critical | Important
+                  Values:
+                    - Critical
+      Description: AmznLinux2 Critical Patch Baseline.
+      Name: !Sub "${Prefix}-AmazonLinuxCustomPatchBaseline"   
+      PatchGroups:
+        - !Sub "${Prefix}-amznlinux-patch-group"      # Patch Group tag
+        
+  RHELPatchBaseline:
+    Type: AWS::SSM::PatchBaseline
+    Properties:
+      OperatingSystem: REDHAT_ENTERPRISE_LINUX    # Operating system 
+      ApprovalRules:
+        PatchRules:
+          - ApproveAfterDays: 7               # The number of days to wait after the patch was released, before the patch is automatically approved for patching
+            ComplianceLevel: UNSPECIFIED      # Defines the compliance level for approved patches. The default value is UNSPECIFIED. Values can be CRITICAL | HIGH | INFORMATIONAL | LOW | MEDIUM
+            EnableNonSecurity: false          # Indicates whether the list of approved patches includes non-security updates
+            PatchFilterGroup:
+              PatchFilters:
+                - Key: CLASSIFICATION         # Only security update. Values can be Security | Bugfix
+                  Values:
+                    - Security
+                - Key: SEVERITY               # Only critical update. Values can be Critical | Important
+                  Values:
+                    - Critical
+      Description: RHEL Critical Patch Baseline.
+      Name: !Sub "${Prefix}-RHELCustomPatchBaseline"
+      PatchGroups:
+        - !Sub "${Prefix}-rhel-patch-group"     # # Patch Group tag
+        
+  AWSRunPatchBaselineAssociation:
+    Type: AWS::SSM::Association
+    Properties:
+      AssociationName: !Sub "${Prefix}-AWSRunPatchBaselineAssociation"
+      Name: AWS-RunPatchBaseline
+      OutputLocation:
+        S3Location:
+          OutputS3BucketName: !Ref S3BucketName
+          OutputS3KeyPrefix: AWSRunPatchBaselineAssociation
+      Parameters:
+        Operation:
+          - Install
+      Targets:
+        - Key: InstanceIds
+          Values:
+            - !Ref WindowsInstance1
+            - !Ref WindowsInstance2
+            - !Ref AmazonLinuxInstance
+            - !Ref RHELInstance
+      WaitForSuccessTimeoutSeconds: !Ref WaitForSuccessTimeoutSeconds
