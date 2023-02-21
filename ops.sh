@@ -2,7 +2,7 @@
 
 while true
 do
-    read -p "Enter Operation: " i
+    read -p "Enter 'create', 'update' or 'delete' operation: " i
     lowerstr=$(echo $i | tr '[:upper:]' '[:lower:]')
 
     if [ "$lowerstr" == "create" ]
@@ -25,6 +25,6 @@ do
             --stack-name ssm-patch-manager
             break
     else
-        echo "Please type correct input again"
+        echo "\nPlease type correct operation again\n"
     fi
 done
