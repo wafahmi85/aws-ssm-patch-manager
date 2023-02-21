@@ -7,16 +7,20 @@ do
 
     if [ "$lowerstr" == "create" ]
         then
+            read -p "Enter your S3 bucket name: " bucket
+            aws s3 sync . s3://${bucket}/cf-patch-manager/ --exclude ".git/*" --exclude "ops.sh" --delete
             aws cloudformation create-stack \
             --stack-name ssm-patch-manager \
-            --template-url https://fahmi-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/cf-patch-manager/stack.yaml \
+            --template-url https://${bucket}.s3.ap-southeast-1.amazonaws.com/cf-patch-manager/stack.yaml \
             --capabilities CAPABILITY_IAM 
             break
     elif [ "$lowerstr" == "update" ]
         then
+            read -p "Enter your S3 bucket name: " bucket
+            aws s3 sync . s3://${bucket}/cf-patch-manager/ --exclude ".git/*" --exclude "ops.sh" --delete
             aws cloudformation update-stack \
             --stack-name ssm-patch-manager \
-            --template-url https://fahmi-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/cf-patch-manager/stack.yaml \
+            --template-url https://${bucket}.s3.ap-southeast-1.amazonaws.com/cf-patch-manager/stack.yaml \
             --capabilities CAPABILITY_IAM 
             break
     elif [ "$lowerstr" == "delete" ]
