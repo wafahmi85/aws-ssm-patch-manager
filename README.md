@@ -4,7 +4,7 @@
 <img width="600" alt="image" src="https://user-images.githubusercontent.com/108646116/220481806-8736bbbe-9836-401b-bed8-3c6800724d24.png">
 
 
-## Tempalte File Modification
+## Template File Modification
 
 Modify the following locations in stack.yaml.
 
