@@ -90,11 +90,11 @@ Resources:
       PatchGroups:
         - !Sub "${Prefix}-rhel-patch-group"     # # Patch Group tag
         
-  AWSRunPatchBaselineAssociation:
+  AWSRunPatchBaseline:
     Type: AWS::SSM::Association
     Properties:
-      AssociationName: !Sub "${Prefix}-AWSRunPatchBaselineAssociation"
-      Name: AWS-RunPatchBaseline
+      AssociationName: !Sub "${Prefix}-AWSRunPatchBaseline"
+      Name: AWS-RunPatchBaseline                              # Run command to deploying/installing patches/updates for all instances
       OutputLocation:
         S3Location:
           OutputS3BucketName: !Ref S3BucketName
@@ -110,3 +110,54 @@ Resources:
             - !Ref AmazonLinuxInstance
             - !Ref RHELInstance
       WaitForSuccessTimeoutSeconds: !Ref WaitForSuccessTimeoutSeconds
+
+
+  MaintenanceWindow:
+    Type: AWS::SSM::MaintenanceWindow
+    DependsOn:
+      - AWSRunPatchBaseline
+    Properties: 
+      AllowUnassociatedTargets: true      # Allow maintenance tasks scheduled for this maintenance window to run on targets that are not currently registered with this maintenance window.
+      Cutoff: 1
+      Description: !Sub "${Prefix}-Maintenance-Window"
+      Duration: 2
+      Name: !Sub "${Prefix}-MaintenanceWindow"
+      Schedule: rate(5 minutes)        # https://docs.aws.amazon.com/systems-manager/latest/userguide/reference-cron-and-rate-expressions.html
+      ScheduleTimezone: Asia/Kuala_Lumpur
+      
+  MaintenanceWindowTarget:
+    Type: AWS::SSM::MaintenanceWindowTarget
+    Properties: 
+      Description: !Sub "${Prefix}-MaintenanceWindowTarget"
+      Name: !Sub "${Prefix}-MaintenanceWindowTarget"
+      ResourceType: INSTANCE
+      Targets: 
+        - Key: tag:Patch Group                # Define Patch group tag
+          Values:
+            - !Sub "${Prefix}-windows-patch-group"
+            - !Sub "${Prefix}-amznlinux-patch-group"
+            - !Sub "${Prefix}-rhel-patch-group"
+      WindowId: !Ref MaintenanceWindow
+      
+  MaintenanceWindowTask:
+    Type: AWS::SSM::MaintenanceWindowTask
+    Properties: 
+      Description: !Sub "${Prefix}-MaintenanceWindowTask"
+      MaxConcurrency: 1               # The maximum number of targets this task can be run for, in parallel.
+      MaxErrors: 1                    # The maximum number of errors allowed before this task stops being scheduled.
+      Name: !Sub "${Prefix}-MaintenanceWindowTask"
+      Priority: 1                     # The lower the number, the higher the priority.
+      Targets: 
+        - Key: WindowTargetIds
+          Values:
+            - !Ref MaintenanceWindowTarget
+      TaskArn: AWS-RunPatchBaseline
+      TaskInvocationParameters: 
+        MaintenanceWindowRunCommandParameters:
+          OutputS3BucketName: !Ref S3BucketName
+          OutputS3KeyPrefix: AWSRunPatchBaselineMaintenanceWindowTask
+          Parameters:
+            Operation:
+              - Install
+      TaskType: RUN_COMMAND
+      WindowId: !Ref MaintenanceWindow

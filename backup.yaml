@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  Prefix:
+    Type: String
+
+
+Resources:
+  BackupPlan:
+    Type: AWS::Backup::BackupPlan
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub "${Prefix}-backups-plan"
+        BackupPlanRule:
+          - RuleName: daily-backups
+            TargetBackupVault: !Ref 'BackupVault'
+            ScheduleExpression: cron(0 16 ? * * *)  # Set to run 12 AM daily MYT
+            StartWindowMinutes: 60      # Start within 1 hour
+            Lifecycle:
+              DeleteAfterDays: 60       # Expired after 2 month
+          - RuleName: weekly-backups
+            TargetBackupVault: !Ref 'BackupVault'
+            ScheduleExpression: cron(0 17 ? * SAT *) # Set to run 1 AM weekly every Sunday MYT
+            StartWindowMinutes: 60      # Start within 1 hour 
+            Lifecycle:
+              DeleteAfterDays: 120    # Expired after 4 month
+
+  BackupVault:
+    Type: AWS::Backup::BackupVault                      # Create new backup vault
+    Properties:
+      BackupVaultName: !Sub "${Prefix}-backups-vault"
+      EncryptionKeyArn: !GetAtt BackupVaultKey.Arn
+
+  BackupVaultKey:
+    Type: AWS::KMS::Key                   # Create AWS backup encryption key
+    Properties:
+      Description: Backup encryption key
+      Enabled: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:root'
+            Action:
+              - kms:*
+            Resource: '*'
+
+  BackupVaultKeyAlias:
+    Type: AWS::KMS::Alias                   # KMS key Alias
+    Properties:
+      AliasName: alias/cmk/backup
+      TargetKeyId: !Ref 'BackupVaultKey'
+
+  BackupSelection:
+    Type: AWS::Backup::BackupSelection    # Every instance with Tag Key 'backup' and Value 'yes' will be backup
+    Properties:
+      BackupSelection:
+        SelectionName: backup-tag
+        IamRoleArn: !GetAtt 'BackupRole.Arn'
+        ListOfTags:
+          - ConditionType: STRINGEQUALS
+            ConditionKey: backup
+            ConditionValue: true
+      BackupPlanId: !Ref 'BackupPlan'
+
+  BackupRole:
+    Type: AWS::IAM::Role              # Role with AWS manage policy for Backup
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - backup.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup

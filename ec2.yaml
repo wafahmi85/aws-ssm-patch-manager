@@ -42,6 +42,9 @@ Resources:
           SubnetId: !Ref Subnet
           GroupSet:
             - !Ref InstanceSecurityGroup
+      Tags:
+        - Key: backup
+          Value: true
 
   WindowsInstance2:
     Type: AWS::EC2::Instance
@@ -58,6 +61,8 @@ Resources:
       Tags:
         - Key: Patch Group
           Value: !Sub "${Prefix}-windows-patch-group"
+        - Key: backup
+          Value: true
           
   AmazonLinuxInstance:
     Type: AWS::EC2::Instance
@@ -74,6 +79,8 @@ Resources:
       Tags:
         - Key: Patch Group
           Value: !Sub "${Prefix}-amznlinux-patch-group"
+        - Key: backup
+          Value: true
 
   RHELInstance:
     Type: AWS::EC2::Instance
@@ -91,14 +98,16 @@ Resources:
         Fn::Base64:       #UserData must be a base64-encoded text. Also, the limit on user data size is 16 KB.
           !Sub |
             #!/bin/bash
-            sudo dnf update -y
-            sudo dnf install python39
+            sudo dnf -y update
+            sudo dnf install -y python39
             sudo yum install -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_amd64/amazon-ssm-agent.rpm
             sudo systemctl enable amazon-ssm-agent
             sudo systemctl start amazon-ssm-agent
       Tags:
         - Key: Patch Group
           Value: !Sub "${Prefix}-rhel-patch-group"
+        - Key: backup
+          Value: true
             
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile

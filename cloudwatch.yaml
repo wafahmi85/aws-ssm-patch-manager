@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  TopicArn:
+    Type: String
+
+  Prefix:
+    Type: String
+
+  WindowsInstance1:
+    Type: String
+
+  WindowsInstance2:
+    Type: String
+
+  AmazonLinuxInstance:
+    Type: String
+
+  RHELInstance:
+    Type: String
+    
+
+Resources:
+  WindowsInstance1Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${WindowsInstance1}-EC2StatusCheck"
+      AlarmActions:
+        - !Ref TopicArn
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref WindowsInstance1
+      EvaluationPeriods: 1
+      MetricName: StatusCheckFailed
+      Namespace: AWS/EC2
+      Period: 300
+      Statistic: Average
+      Threshold: 0.99
+
+  WindowsInstance2Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${WindowsInstance2}-EC2StatusCheck"
+      AlarmActions:
+        - !Ref TopicArn
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref WindowsInstance2
+      EvaluationPeriods: 1
+      MetricName: StatusCheckFailed
+      Namespace: AWS/EC2
+      Period: 300
+      Statistic: Average
+      Threshold: 0.99
+
+  AmazonLinuxInstanceAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AmazonLinuxInstance}-EC2StatusCheck"
+      AlarmActions:
+        - !Ref TopicArn
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref AmazonLinuxInstance
+      EvaluationPeriods: 1
+      MetricName: StatusCheckFailed
+      Namespace: AWS/EC2
+      Period: 300
+      Statistic: Average
+      Threshold: 0.99
+
+  RHELInstanceAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${RHELInstance}-EC2StatusCheck"
+      AlarmActions:
+        - !Ref TopicArn
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref RHELInstance
+      EvaluationPeriods: 1
+      MetricName: StatusCheckFailed
+      Namespace: AWS/EC2
+      Period: 300
+      Statistic: Average
+      Threshold: 0.99

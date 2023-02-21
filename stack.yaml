@@ -8,6 +8,12 @@ Parameters:
   Prefix:
     Type: String
     Default: cf-patch-manager
+
+  MailAddress:
+    Type: String
+    Default: fahmirasdi@gmail.com
+
+  
     
 
 Resources:
@@ -60,3 +66,36 @@ Resources:
         Prefix: !Ref Prefix
         S3BucketName: !GetAtt S3Stack.Outputs.S3BucketName
         WaitForSuccessTimeoutSeconds: 3600
+
+  BackupStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - EC2Stack
+    Properties:
+      TemplateURL: !Sub "https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/${Prefix}/backup.yaml"
+      Parameters:
+        Prefix: !Ref Prefix
+
+
+  SNSStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/${Prefix}/sns.yaml"
+      Parameters:
+        MailAddress: !Ref MailAddress
+        Prefix: !Ref Prefix    
+
+  CloudWatchStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - EC2Stack
+      - SNSStack
+    Properties:
+      TemplateURL: !Sub "https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/${Prefix}/cloudwatch.yaml"
+      Parameters:
+        TopicArn: !GetAtt SNSStack.Outputs.TopicArn
+        WindowsInstance1: !GetAtt EC2Stack.Outputs.WindowsInstance1
+        WindowsInstance2: !GetAtt EC2Stack.Outputs.WindowsInstance2
+        AmazonLinuxInstance: !GetAtt EC2Stack.Outputs.AmazonLinuxInstance
+        RHELInstance: !GetAtt EC2Stack.Outputs.RHELInstance
+        Prefix: !Ref Prefix

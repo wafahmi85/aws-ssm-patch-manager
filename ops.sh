@@ -3,21 +3,23 @@
 while true
 do
     read -p "Enter Operation: " i
-    if [ "$i" == "create" ]
+    lowerstr=$(echo $i | tr '[:upper:]' '[:lower:]')
+
+    if [ "$lowerstr" == "create" ]
         then
             aws cloudformation create-stack \
             --stack-name ssm-patch-manager \
             --template-url https://fahmi-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/cf-patch-manager/stack.yaml \
             --capabilities CAPABILITY_IAM 
             break
-    elif [ "$i" == "update" ]
+    elif [ "$lowerstr" == "update" ]
         then
             aws cloudformation update-stack \
             --stack-name ssm-patch-manager \
             --template-url https://fahmi-ap-southeast-1.s3.ap-southeast-1.amazonaws.com/cf-patch-manager/stack.yaml \
             --capabilities CAPABILITY_IAM 
             break
-    elif [ "$i" == "delete" ]
+    elif [ "$lowerstr" == "delete" ]
         then
             aws cloudformation delete-stack \
             --stack-name ssm-patch-manager

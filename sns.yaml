@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  MailAddress:
+    Type: String
+
+  Prefix:
+    Type: String
+    
+    
+Resources:
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription: 
+        - Endpoint: !Ref MailAddress
+          Protocol: email
+      TopicName: !Ref Prefix
+      
+      
+Outputs:
+  TopicArn:
+    Value: !Ref Topic
